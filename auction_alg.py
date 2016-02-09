@@ -77,31 +77,32 @@ class Auction(object):
 
 	def _if_assigned_replace(self, x, agent):
 		if x in self._assignments:
-			self._q.append(self._assignments[x])
+			if self._assignments[x] is not agent:
+				self._q.append(self._assignments[x])
 		self._assignments[x] = agent
-		print 'object: {0} agent: {1}'.format(x, agent)
 
 	def _compute_utility_arr(self, agent):
 		return [u - p for u, p in zip(self._matrix[agent], self._price_arr)]
 
 	def _two_largest(self, utility_arr):
 		"""Returns a list of the largest index and second_largest index"""
-		largest = max(utility_arr)
-		largest_index = utility_arr.index(largest)
-
-		second_largest = max(n for n in utility_arr if n is not largest)
-
-		return largest_index, largest, second_largest
+		largest, second_largest = None, None
+		for x in utility_arr:
+			if x >= largest:
+				largest, second_largest = x, largest
+			elif x > second_largest:
+				second_largest = x
+		return utility_arr.index(largest), largest, second_largest
 
 	def _make_bid(self, x, px, py):
-		bid_increment = px - py - self._epsilon
+		bid_increment = px - py + self._epsilon
 		self._price_arr[x] = self._price_arr[x] + bid_increment
 
 	def _compute_total_value(self):
 		"""Return the optimal LP solution's final total"""
 		total = 0
-		for i, j in self._assignments.iteritems():
-			total += self._matrix[j][i]
+		for obj, agent in self._assignments.iteritems():
+			total += self._matrix[agent][obj]
 
 		print 'optimal solution: {}'.format(total)
 		return total
@@ -114,12 +115,12 @@ class Auction(object):
 			for j in range(0, n):
 				m[i].append(random.randint(0, M-1))
 
-		self._matrix = m
+		self.matrix = m
 
 	def compute_per_agent_average(self):
 		total = self._compute_total_value()
-		avg = float(total) / len(self._matrix)
-		print avg
+		avg = float(total) / self._n
+		return avg
 
 	def convert_to_glpk(self, filename):
 		with open(filename, 'a') as data_file:
